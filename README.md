@@ -54,16 +54,19 @@ Actualmente, la lavandería opera con tickets en papel autocopiativo: una copia 
 ## Estructura de este repositorio
 
 ```
-laundry-erp-docs/
+laundry-ops-architecture/
 ├── README.md
-├── business/
-│   └── user-stories.md              # Historias de usuario con criterios de aceptación
-├── design/
-│   ├── erd.png                      # Diagrama entidad-relación
-│   ├── architecture.png             # Diagrama de arquitectura (C4)
-│   └── wireframes/                  # Bocetos de las pantallas principales
-└── technical/
-    └── stack.md                 # Decisiones técnicas y justificaciones
+├── product/
+│   ├── problem-and-solution.md
+│   └── user-stories.md
+├── technical/
+│   ├── stack-decisions.md
+│   ├── database-design.md
+│   ├── c4-context.md
+│   └── c4-container.md
+└── infrastructure/
+    ├── deployment.md
+    └── ci-cd.md
 ```
 
 ---
@@ -76,5 +79,5 @@ laundry-erp-docs/
 
 ## Autor
 
-Desarrollado por **Bryan Barba** como proyecto de portfolio.  
+Desarrollado por **Bryan Barba**.
 Stack: Django · React · PostgreSQL · Tailwind CSS
