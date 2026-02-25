@@ -62,8 +62,9 @@ laundry-ops-architecture/
 ├── technical/
 │   ├── stack-decisions.md
 │   ├── database-design.md
-│   ├── c4-context.md
-│   └── c4-container.md
+│   ├── erd.png
+│   ├── c4-context.png
+│   └── c4-container.png
 └── infrastructure/
     ├── deployment.md
     └── ci-cd.md
