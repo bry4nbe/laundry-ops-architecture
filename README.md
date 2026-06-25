@@ -93,17 +93,13 @@ Esto no es un problema de uso incorrecto del software. Es que el software no fue
 laundry-ops-architecture/
 ├── README.md
 ├── product/
-│   ├── problem-and-solution.md
 │   └── user-stories.md
-├── technical/
-│   ├── stack.md
-│   ├── database-design.md
-│   ├── erd.png
-│   ├── c4-context.png
-│   └── c4-container.png
-└── infrastructure/
-    ├── deployment.md
-    └── ci-cd.md
+└── technical/
+    ├── stack.md
+    ├── database-design.md
+    ├── erd.png
+    ├── c4-context.png
+    └── c4-container.png
 ```
 
 ---

@@ -35,7 +35,7 @@ Y tiene acceso a todas las funcionalidades del sistema
 Dado que el usuario tiene una cuenta con rol operador
 Cuando ingresa su usuario y contraseña correctos
 Entonces el sistema lo redirige a la vista simplificada de órdenes
-Y solo tiene acceso a crear órdenes, registrar pagos y cambiar estados
+Y solo tiene acceso a crear órdenes, registrar pagos y entregas
 ```
 
 **Escenario 3: Credenciales incorrectas**
@@ -285,9 +285,9 @@ Y muestra un mensaje indicando que la orden ya fue entregada
 **Escenario 1: Filtrar órdenes**
 ```gherkin
 Dado que el administrador se encuentra en el listado de órdenes
-Cuando aplica uno o más filtros (estado, fecha, tipo de servicio)
+Cuando aplica uno o más filtros (estado derivado: activa / entregada / cancelada, fecha, tipo de servicio)
 Entonces el sistema muestra únicamente las órdenes que coinciden con los filtros aplicados
-Y cada resultado muestra: número de orden, cliente, total, estado y fecha de ingreso
+Y cada resultado muestra: número de orden, cliente, total, estado derivado y fecha de ingreso
 ```
 
 **Escenario 2: Sin resultados**

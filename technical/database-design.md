@@ -122,7 +122,7 @@ Unificarlos en un solo campo crearía ineficiencia, obligando al operario de lav
 |---|---|---|
 | `amount` | `DECIMAL(10,2)` | Monto del gasto |
 | `concept` | `VARCHAR` | Descripción del gasto |
-| `category` | `VARCHAR` | Categoría (limpieza, insumos, etc.) |
+| `category` | `VARCHAR` | Categoría (`insumos`, `servicios`, `tercerización`, `mantenimiento`, `otros`) |
 | `date` | `DATE` | Fecha en que ocurrió el gasto |
 | `receipt_number` | `VARCHAR` (nullable) | Número de boleta o factura del proveedor |
 | `created_by` | FK → `User` | Usuario que registró el gasto |

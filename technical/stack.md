@@ -4,7 +4,7 @@
 
 Sistema de gestión operativa para una lavandería de barrio en Lima, orientado a resolver tres problemas concretos del negocio:
 
-1. **Pérdida de control sobre órdenes en proceso:** no hay visibilidad de qué prendas están recibidas, en lavado o listas para entrega.
+1. **Pérdida de control sobre órdenes en proceso:** no hay visibilidad de qué órdenes están activas o pendientes de entrega.
 2. **Flujo de caja opaco:** los pagos parciales (adelantos) se registran en papel y es difícil saber cuánto se cobró y cuánto falta por cobrar en el día.
 3. **Trazabilidad nula del lavado al seco:** las prendas enviadas a terceros no tienen seguimiento formal, generando demoras y pérdidas.
 
