@@ -22,6 +22,7 @@ El sistema reemplaza un proceso basado en tickets de papel autocopiativo (costo 
 | Decisiones de arquitectura | ✅ Documentadas |
 | Modelo de datos (ERD) | ✅ Diseñado |
 | Diagramas C4 | ✅ Contexto y contenedores |
+| Autenticación (JWT) | ✅ Implementada |
 | Backend (API REST) | 🔲 En desarrollo |
 | Frontend (SPA) | 🔲 En desarrollo |
 | Tests | 🔲 En desarrollo |
@@ -36,26 +37,27 @@ El sistema reemplaza un proceso basado en tickets de papel autocopiativo (costo 
 
 El volumen del sistema (una sucursal, decenas de órdenes diarias) no justifica microservicios. La separación de responsabilidades se implementa a nivel de código mediante capas (`models`, `services`, `serializers`, `views`), no de infraestructura. Cada capa es independientemente testeable y el sistema es extensible sin rediseño estructural.
 
-### Máquina de estados con consistencia entre entidades
+### Ciclo de vida de órdenes mediante timestamps derivados
 
-El sistema gestiona dos máquinas de estado independientes que deben mantenerse coherentes:
+El estado de una orden se deriva de sus timestamps, no de un campo de estado explícito con transiciones:
 
-- `Order.status`: `received → in_process → ready → delivered`
-- `OrderItem.dry_cleaning_status`: `pending_send → sent → returned`
+- **Activa:** `delivered_at IS NULL AND cancelled_at IS NULL`
+- **Entregada:** `delivered_at IS NOT NULL`
+- **Cancelada:** `cancelled_at IS NOT NULL`
 
-Una inconsistencia entre ambas (orden en `ready` con items aún en `sent`) es un bug con impacto operativo directo: la operadora le diría al cliente que su ropa está lista cuando en realidad sigue con el tercero.
+`OrderItem.dry_cleaning_status` usa `TextChoices` (`pending_send → sent → returned`) con validación en serializers.
 
-La solución tiene dos capas:
+> **Decisión reemplazada:** `django-fsm` fue evaluado y descartado. Justificación: en un equipo de 1-3 personas, la capacidad de corregir estados directamente desde Django Admin sin pelear con el framework supera la protección que ofrecen las transiciones forzadas. La validación vive en `services.py` dentro de transacciones atómicas.
 
-**`django-fsm`** define las transiciones válidas directamente en el modelo, rechazando cualquier transición inválida desde cualquier punto de entrada, incluyendo el Django Admin. Se eligió sobre validaciones manuales en `services.py` porque las reglas viven en el modelo y son imposibles de saltarse desde cualquier capa, no solo desde la API.
-
-**Transacciones atómicas** en `services.py` envuelven los cambios de estado de orden e items relacionados. Si la validación de consistencia falla, ningún cambio llega a la base de datos. Una signal `post_save` en `OrderItem` evalúa si todos los items de lavado al seco de la orden están en `returned` antes de permitir la transición de la orden a `ready`.
+**Transacciones atómicas** en `services.py` envuelven los cambios de estado e items relacionados. Si la validación falla, ningún cambio llega a la base de datos.
 
 ---
 
 ## Backend
 
-### Python 3.12 + Django 5 + Django REST Framework
+### Python 3.12.10 + Django 5.2 LTS + Django REST Framework
+
+**Política de versionamiento:** Python anclado en versión menor (3.12.x), PostgreSQL anclado en versión mayor (18.x); parches flotantes deliberados. Django anclado a LTS (5.2) hasta su EOL.
 
 **Django Admin operativo.** El panel `/admin` resuelve el mantenimiento de datos en producción sin construir pantallas adicionales: corrección de registros, gestión de usuarios, consulta de estados. Esto elimina semanas de desarrollo de backoffice.
 
@@ -67,19 +69,13 @@ La solución tiene dos capas:
 
 ### Autenticación: JWT con djangorestframework-simplejwt
 
-Frontend y backend operan en dominios distintos (Vercel y Railway), consecuencia directa de haber elegido una SPA con React (ver justificación en la sección de Frontend). En ese contexto, JWT es el mecanismo estándar: `refresh_token` en cookie HTTP-only, `access_token` en memoria con vida de 15 minutos. Los permisos por rol se validan mediante permission classes de DRF en cada endpoint.
+Frontend y backend operan en dominios distintos (Vercel y Railway), consecuencia directa de haber elegido una SPA con React (ver justificación en la sección de Frontend). En ese contexto, JWT es el mecanismo estándar. La estrategia exacta de almacenamiento de tokens (`refresh_token` en cookie HTTP-only vs. otro mecanismo) está **pendiente de verificar contra la implementación real** en `laundry-ops-api`. Los permisos por rol se validan mediante permission classes de DRF en cada endpoint.
 
 *Nota:* Si el frontend fuera server-rendered con Django templates, Django sessions sería suficiente y más simple. JWT es la consecuencia natural de la arquitectura SPA elegida.
 
-### PostgreSQL 16
+### PostgreSQL 18
 
 `DECIMAL(10, 2)` garantiza precisión exacta en aritmética monetaria. En un sistema que maneja caja diaria con pagos parciales, los errores de redondeo de punto flotante son bugs con impacto financiero real. La integridad referencial entre órdenes, items, pagos y catálogo está garantizada a nivel de base de datos, no solo a nivel de aplicación.
-
-### Cloudinary
-
-Almacenamiento de fotos de tickets de lavado al seco. Tier gratuito de 25 GB suficiente para el volumen del negocio. El servidor de aplicaciones no gestiona archivos, lo que simplifica los deploys y elimina pérdida de datos al redesplegar.
-
-*Alternativa descartada:* AWS S3 tiene mayor complejidad de configuración (IAM, bucket policies) sin beneficio adicional para una sola sucursal.
 
 ### Testing: Pytest + pytest-django
 
@@ -89,8 +85,8 @@ Casos de prueba prioritarios:
 
 - Cálculo de `total_amount` en órdenes con items mixtos (por prenda y por kilo).
 - Validación de que un pago no excede el saldo pendiente de la orden.
-- Transiciones de estado válidas e inválidas en `Order` y `OrderItem` (`django-fsm` rechaza las inválidas).
-- Consistencia entre `dry_cleaning_status` de items y `status` de la orden padre.
+- Validación de timestamps derivados: orden activa, entregada y cancelada.
+- Consistencia entre `dry_cleaning_status` de items y el estado derivado de la orden.
 - Cálculo de balance diario: total cobrado vs total pendiente.
 
 ---
@@ -105,7 +101,6 @@ Backend Django y PostgreSQL en Railway. Frontend React en Vercel. Ambos con tier
 |---|---|
 | Railway (backend + PostgreSQL) | $0 – $5 USD |
 | Vercel (frontend) | $0 |
-| Cloudinary (imágenes) | $0 |
 | **Total** | **$0 – $5 USD / mes (~$60/año)** |
 
 El sistema actual basado en papel cuesta S/540/año (~$144 USD/año).
@@ -148,7 +143,7 @@ Componentes adaptados al dominio del negocio: tabla de órdenes con columnas de 
 
 ### ApexCharts
 
-Visualización del dashboard: barras para ingresos por período, donut para distribución de métodos de pago (efectivo, Yape/Plin, transferencia). Integrado vía `react-apexcharts`.
+Visualización del dashboard: barras para ingresos por período, donut para distribución de métodos de pago (efectivo, Yape/Plin). Integrado vía `react-apexcharts`.
 
 ### React Router v7 + Vite
 
@@ -166,5 +161,4 @@ React Router gestiona la navegación entre módulos sin recargas. Vite provee HM
 
 ---
 
-
-*Última actualización: Febrero 2026*
+*Última actualización: Junio 2026*

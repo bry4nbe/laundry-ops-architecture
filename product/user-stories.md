@@ -1,4 +1,4 @@
-# User Stories — Laundry ERP (MVP v1)
+# User Stories — Laundry Ops (MVP v1)
 
 ## Convención
 
@@ -18,14 +18,14 @@ Los criterios de aceptación usan el formato **Gherkin (Given / When / Then)**:
 ---
 
 ### US-01 — Iniciar sesión
-**Como** usuario del sistema (administrador u operador), **quiero** iniciar sesión con mi correo y contraseña, **para** acceder a las funcionalidades según mi rol.
+**Como** usuario del sistema (administrador u operador), **quiero** iniciar sesión con mi usuario y contraseña, **para** acceder a las funcionalidades según mi rol.
 
 **Criterios de aceptación:**
 
 **Escenario 1: Inicio de sesión exitoso como administrador**
 ```gherkin
 Dado que el usuario tiene una cuenta con rol administrador
-Cuando ingresa su correo y contraseña correctos
+Cuando ingresa su usuario y contraseña correctos
 Entonces el sistema lo redirige al dashboard completo
 Y tiene acceso a todas las funcionalidades del sistema
 ```
@@ -33,7 +33,7 @@ Y tiene acceso a todas las funcionalidades del sistema
 **Escenario 2: Inicio de sesión exitoso como operador**
 ```gherkin
 Dado que el usuario tiene una cuenta con rol operador
-Cuando ingresa su correo y contraseña correctos
+Cuando ingresa su usuario y contraseña correctos
 Entonces el sistema lo redirige a la vista simplificada de órdenes
 Y solo tiene acceso a crear órdenes, registrar pagos y cambiar estados
 ```
@@ -41,7 +41,7 @@ Y solo tiene acceso a crear órdenes, registrar pagos y cambiar estados
 **Escenario 3: Credenciales incorrectas**
 ```gherkin
 Dado que el usuario se encuentra en la pantalla de login
-Cuando ingresa un correo o contraseña incorrectos
+Cuando ingresa un usuario o contraseña incorrectos
 Entonces el sistema muestra un mensaje de error
 Y no permite el acceso al sistema
 ```
@@ -156,7 +156,7 @@ Y muestra el estado de cada orden, el total cobrado y el saldo pendiente acumula
 Dado que el usuario seleccionó un cliente y agregó al menos una prenda
 Cuando presiona "Guardar orden"
 Entonces el sistema genera un número de orden único
-Y registra la orden con estado "Recibido"
+Y registra la orden como activa
 Y calcula el total automáticamente según los precios del catálogo
 ```
 
@@ -189,7 +189,7 @@ Dado que el usuario seleccionó un cliente e ingresó el peso en kilogramos
 Cuando presiona "Guardar orden"
 Entonces el sistema genera un número de orden único
 Y calcula el total multiplicando el peso por el precio por kilo configurado en el catálogo
-Y registra la orden con estado "Recibido"
+Y registra la orden como activa
 ```
 
 **Escenario 2: Precio por kilo editable**
@@ -227,7 +227,6 @@ Y actualiza el estado de la prenda a "Enviado al tercero"
 Dado que una prenda se encuentra en estado "Enviado al tercero"
 Cuando el operador registra su retorno
 Entonces el sistema actualiza el estado de la prenda a "Retornado"
-Y actualiza automáticamente el estado de la orden asociada a "Listo"
 ```
 
 **Escenario 4: Alerta por demora**
@@ -235,36 +234,6 @@ Y actualiza automáticamente el estado de la orden asociada a "Listo"
 Dado que una prenda fue enviada al tercero
 Cuando han pasado más de 2 días hábiles sin registrar su retorno
 Entonces el sistema resalta la prenda como pendiente de seguimiento en el listado
-```
-
----
-
-### US-09 — Adjuntar foto del ticket físico a una orden
-**Como** operador o administrador, **quiero** tomar una foto al ticket de papel y adjuntarla a la orden, **para** tener un respaldo visual del registro manual.
-
-**Criterios de aceptación:**
-
-**Escenario 1: Adjuntar foto al crear una orden**
-```gherkin
-Dado que el usuario está creando o editando una orden
-Cuando selecciona la opción de adjuntar foto
-Entonces el sistema permite tomar una foto con la cámara del celular o seleccionarla desde la galería
-Y guarda la foto asociada a la orden
-```
-
-**Escenario 2: Ver foto adjunta**
-```gherkin
-Dado que una orden tiene una foto adjunta
-Cuando el usuario accede al detalle de la orden
-Entonces el sistema muestra la foto del ticket como referencia visual
-```
-
-**Escenario 3: Orden sin foto**
-```gherkin
-Dado que el usuario está creando una orden
-Cuando no adjunta ninguna foto y presiona guardar
-Entonces el sistema guarda la orden correctamente sin foto
-Y no bloquea el proceso por la ausencia de imagen
 ```
 
 ---
@@ -279,36 +248,31 @@ Y no bloquea el proceso por la ausencia de imagen
 Dado que el usuario selecciona una orden de la lista
 Cuando accede a su detalle
 Entonces el sistema muestra: cliente, tipo de servicio, detalle de prendas o peso, total, historial de pagos, saldo pendiente y estado actual
-Y si tiene foto adjunta la muestra disponible para visualizar
 ```
 
 ---
 
-### US-11 — Cambiar estado de una orden
-**Como** operador o administrador, **quiero** actualizar el estado de una orden, **para** reflejar en qué etapa del proceso se encuentra la ropa del cliente.
+### US-11 — Registrar entrega de una orden
+**Como** operador o administrador, **quiero** registrar la entrega de una orden al cliente, **para** cerrar el ciclo operativo y habilitar el cobro final.
+
+> **Nota:** la cancelación de orden se resuelve por Django Admin vía `cancelled_at`, sin historia de desarrollo.
 
 **Criterios de aceptación:**
 
-**Escenario 1: Avanzar estado exitosamente**
+**Escenario 1: Registrar entrega exitosamente**
 ```gherkin
-Dado que una orden se encuentra en cualquier estado excepto "Entregado"
-Cuando el usuario selecciona avanzar al siguiente estado
-Entonces el sistema actualiza el estado de la orden
-Y registra la fecha y hora del cambio
+Dado que una orden está activa (sin delivered_at ni cancelled_at)
+Cuando el operador registra la entrega al cliente
+Entonces el sistema asigna la fecha y hora actual a delivered_at
+Y la orden queda disponible para registrar el cobro final pendiente
 ```
 
-**Escenario 2: No se puede retroceder estado**
+**Escenario 2: Orden ya entregada**
 ```gherkin
-Dado que una orden se encuentra en un estado avanzado
-Cuando el usuario intenta retroceder al estado anterior
+Dado que una orden ya tiene delivered_at registrado
+Cuando el usuario intenta registrar la entrega nuevamente
 Entonces el sistema no permite la acción
-Y muestra un mensaje indicando que el estado no puede retrocederse
-```
-
-**Escenario 3: Alerta al llegar a "Listo"**
-```gherkin
-Dado que una orden avanza al estado "Listo"
-Entonces el sistema muestra la orden resaltada en el dashboard como lista para entregar
+Y muestra un mensaje indicando que la orden ya fue entregada
 ```
 
 ---
@@ -414,6 +378,8 @@ Y muestra el total pagado acumulado y el saldo pendiente actual
 ### US-16 — Gestionar precios de prendas
 **Como** administrador, **quiero** configurar el listado de prendas con sus precios unitarios, **para** que se carguen automáticamente al crear una orden.
 
+> **Nota:** implementada como API de solo lectura + administración por Django Admin.
+
 **Criterios de aceptación:**
 
 **Escenario 1: Agregar prenda al catálogo**
@@ -434,6 +400,8 @@ Y las órdenes anteriores que la contenían conservan su información sin cambio
 
 ### US-17 — Configurar precio por kilo
 **Como** administrador, **quiero** configurar el precio del lavado por kilo, **para** que se aplique automáticamente al crear órdenes de este tipo.
+
+> **Nota:** implementada como API de solo lectura + administración por Django Admin.
 
 **Criterios de aceptación:**
 
@@ -460,7 +428,7 @@ Y las órdenes existentes conservan el precio con el que fueron registradas
 ```gherkin
 Dado que el administrador accede al dashboard
 Cuando la pantalla carga
-Entonces el sistema muestra: número de órdenes ingresadas hoy, órdenes listas para entregar, ingresos cobrados hoy e ingresos pendientes de cobro
+Entonces el sistema muestra: número de órdenes ingresadas hoy, órdenes pendientes de entrega, ingresos cobrados hoy e ingresos pendientes de cobro
 Y los datos reflejan el estado actual sin necesidad de recargar la página
 ```
 
@@ -481,15 +449,15 @@ Y para el lavado al seco muestra también el costo al tercero y la ganancia neta
 
 ---
 
-### US-20 — Ver órdenes listas para entregar
-**Como** operador o administrador, **quiero** ver de forma destacada las órdenes listas para ser recogidas, **para** atender al cliente cuando se acerque al local.
+### US-20 — Ver órdenes pendientes de entrega
+**Como** operador o administrador, **quiero** ver de forma destacada las órdenes pendientes de entrega, **para** atender al cliente cuando se acerque al local.
 
 **Criterios de aceptación:**
 
-**Escenario 1: Ver órdenes listas**
+**Escenario 1: Ver órdenes pendientes de entrega**
 ```gherkin
 Dado que el usuario accede al dashboard
-Cuando hay órdenes en estado "Listo"
+Cuando hay órdenes activas sin fecha de entrega registrada (delivered_at IS NULL)
 Entonces el sistema las muestra resaltadas y separadas del resto
 Y cada orden indica si tiene saldo pendiente de pago
 ```
@@ -510,12 +478,14 @@ Entonces el sistema muestra la orden correspondiente con su estado y saldo pendi
 ### US-21 — Crear usuario operador
 **Como** administrador, **quiero** crear una cuenta para un empleado con rol operador, **para** que pueda usar el sistema con acceso limitado.
 
+> **Nota:** Resuelta vía Django Admin.
+
 **Criterios de aceptación:**
 
 **Escenario 1: Crear operador exitosamente**
 ```gherkin
 Dado que el administrador accede a la gestión de usuarios
-Cuando ingresa nombre, correo y contraseña temporal del nuevo operador y guarda
+Cuando ingresa nombre, usuario y contraseña temporal del nuevo operador y guarda
 Entonces el sistema crea la cuenta con rol operador
 Y el nuevo usuario puede iniciar sesión con acceso limitado
 ```
@@ -524,6 +494,8 @@ Y el nuevo usuario puede iniciar sesión con acceso limitado
 
 ### US-22 — Desactivar usuario
 **Como** administrador, **quiero** desactivar la cuenta de un empleado, **para** revocar su acceso cuando ya no trabaje en el local.
+
+> **Nota:** Resuelta vía Django Admin.
 
 **Criterios de aceptación:**
 
@@ -534,6 +506,42 @@ Cuando selecciona la opción de desactivar cuenta y confirma la acción
 Entonces el sistema desactiva la cuenta
 Y el usuario no puede iniciar sesión desde ese momento
 Y las órdenes y pagos registrados por ese usuario se conservan sin cambios
+```
+
+---
+
+## Post-MVP / En evaluación
+
+---
+
+### US-09 — Adjuntar foto del ticket físico a una orden
+**Como** operador o administrador, **quiero** tomar una foto al ticket de papel y adjuntarla a la orden, **para** tener un respaldo visual del registro manual.
+
+> **Nota:** Movida a post-MVP. Fotografiar papel agrega fricción cuando el sistema es la fuente de verdad. Se evaluará según necesidad real del cliente.
+
+**Criterios de aceptación:**
+
+**Escenario 1: Adjuntar foto al crear una orden**
+```gherkin
+Dado que el usuario está creando o editando una orden
+Cuando selecciona la opción de adjuntar foto
+Entonces el sistema permite tomar una foto con la cámara del celular o seleccionarla desde la galería
+Y guarda la foto asociada a la orden
+```
+
+**Escenario 2: Ver foto adjunta**
+```gherkin
+Dado que una orden tiene una foto adjunta
+Cuando el usuario accede al detalle de la orden
+Entonces el sistema muestra la foto del ticket como referencia visual
+```
+
+**Escenario 3: Orden sin foto**
+```gherkin
+Dado que el usuario está creando una orden
+Cuando no adjunta ninguna foto y presiona guardar
+Entonces el sistema guarda la orden correctamente sin foto
+Y no bloquea el proceso por la ausencia de imagen
 ```
 
 ---
@@ -549,18 +557,32 @@ Y las órdenes y pagos registrados por ese usuario se conservan sin cambios
 | US-07 | Crear orden por kilo | Alta | Órdenes |
 | US-13 | Registrar adelanto al crear orden | Alta | Pagos |
 | US-14 | Registrar pago de saldo pendiente | Alta | Pagos |
-| US-11 | Cambiar estado de orden | Alta | Órdenes |
+| US-11 | Registrar entrega de orden | Alta | Órdenes |
 | US-18 | Ver resumen del día | Alta | Dashboard |
-| US-20 | Ver órdenes listas para entregar | Alta | Dashboard |
+| US-20 | Ver órdenes pendientes de entrega | Alta | Dashboard |
 | US-16 | Gestionar precios de prendas | Media | Catálogo |
 | US-17 | Configurar precio por kilo | Media | Catálogo |
 | US-10 | Ver detalle de orden | Media | Órdenes |
 | US-08 | Seguimiento de lavado al seco | Media | Órdenes |
-| US-09 | Adjuntar foto del ticket | Media | Órdenes |
 | US-05 | Ver historial de cliente | Media | Clientes |
 | US-12 | Listar órdenes con filtros | Media | Órdenes |
 | US-15 | Ver historial de pagos | Media | Pagos |
 | US-19 | Ver ingresos por período | Media | Dashboard |
 | US-21 | Crear usuario operador | Baja | Usuarios |
-| US-22 | Desactivar usuario | Baja | Usuarios |
+| US-22 | Desactivar usuario | Baja | Autenticación |
 | US-02 | Cerrar sesión | Baja | Autenticación |
+| US-09 | Adjuntar foto del ticket | Post-MVP | Órdenes |
+
+---
+
+## Decisiones Diferidas
+
+Las siguientes funcionalidades fueron evaluadas y pospuestas deliberadamente:
+
+| Funcionalidad | Razón |
+|---|---|
+| Caja formal | Fuera del alcance del MVP |
+| Notificación por WhatsApp | Complejidad de integración no justificada aún |
+| Vista "boletas del día" | En evaluación según uso real |
+| Emisión electrónica de boletas | Requiere integración SUNAT |
+| Multi-tenant | Visión de producto a largo plazo |
